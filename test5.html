@@ -2,496 +2,1059 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>神经生物学专题练习</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNN算法学霸课堂PK</title>
     <style>
-        :root {
-            --primary: #4CAF50;
-            --secondary: #2196F3;
-            --background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #fff;
             margin: 0;
-            min-height: 100vh;
-            background: var(--background);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
+            padding: 0;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(0, 255, 255, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 50% 50%, rgba(255, 255, 0, 0.05) 0%, transparent 25%);
         }
-
+        
         .container {
-            width: 90%;
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: rgba(255,255,255,0.95);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+        }
+        
+        h1 {
+            font-family: 'Press Start 2P', cursive;
+            text-align: center;
+            color: #ffcc00;
+            text-shadow: 0 0 10px #ff6600, 0 0 20px #ff6600;
+            margin: 20px 0 40px;
+            font-size: 2.5rem;
+            animation: glow 2s infinite alternate;
+            position: relative;
+        }
+        
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 5px #ffcc00, 0 0 10px #ff6600;
+            }
+            to {
+                text-shadow: 0 0 10px #ffcc00, 0 0 20px #ff6600, 0 0 30px #ff3300;
+            }
+        }
+        
+        .game-area {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .player {
+            width: 48%;
+            background: rgba(30, 30, 30, 0.7);
             border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
-
+        
+        .player.active {
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.7);
+            border: 2px solid gold;
+            transform: scale(1.02);
+        }
+        
+        .player.waiting {
+            opacity: 0.7;
+            filter: grayscale(50%);
+        }
+        
+        .player::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border-radius: 20px;
+            background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+            background-size: 400%;
+            z-index: -1;
+            filter: blur(15px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .player.active::before {
+            opacity: 0.3;
+            animation: animate-border 20s linear infinite;
+        }
+        
+        @keyframes animate-border {
+            0% {
+                background-position: 0 0;
+            }
+            50% {
+                background-position: 400% 0;
+            }
+            100% {
+                background-position: 0 0;
+            }
+        }
+        
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #444;
+        }
+        
+        .player-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4fc3f7;
+            text-shadow: 0 0 5px rgba(79, 195, 247, 0.5);
+        }
+        
+        .player-score {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffeb3b;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .question-container {
+            min-height: 150px;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            position: relative;
+        }
+        
         .question {
-            margin-bottom: 2rem;
-            border-left: 4px solid var(--secondary);
-            padding-left: 1rem;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
         }
-
+        
+        .waiting-message {
+            font-size: 1.2rem;
+            text-align: center;
+            color: #aaa;
+            padding: 40px 0;
+        }
+        
         .options {
-            margin: 1.5rem 0;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
         }
-
+        
         .option {
-            margin: 0.8rem 0;
-            padding: 12px;
-            border: 2px solid #ddd;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px 15px;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
         }
-
+        
         .option:hover {
-            transform: translateX(10px);
-            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
-
-        .selected {
-            background-color: #e3f2fd;
-            border-color: var(--secondary);
+        
+        .option.selected {
+            background: rgba(100, 255, 100, 0.3);
+            box-shadow: 0 0 10px rgba(100, 255, 100, 0.5);
         }
-
+        
+        .option.correct {
+            background: rgba(100, 255, 100, 0.5);
+            box-shadow: 0 0 15px rgba(100, 255, 100, 0.7);
+        }
+        
+        .option.incorrect {
+            background: rgba(255, 100, 100, 0.5);
+            box-shadow: 0 0 15px rgba(255, 100, 100, 0.7);
+        }
+        
+        .controls {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
         button {
-            padding: 10px 25px;
-            margin: 0 10px;
+            background: linear-gradient(45deg, #4fc3f7, #2196f3);
+            color: white;
             border: none;
-            border-radius: 25px;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+            font-weight: bold;
+            margin: 0 10px;
         }
-
-        .nav-buttons {
-            margin-top: 2rem;
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(33, 150, 243, 0.6);
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .next-btn {
+            background: linear-gradient(45deg, #ff9800, #ff5722);
+            box-shadow: 0 5px 15px rgba(255, 87, 34, 0.4);
+        }
+        
+        .next-btn:hover {
+            box-shadow: 0 8px 20px rgba(255, 87, 34, 0.6);
+        }
+        
+        .feedback {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+        
+        .feedback.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .feedback.correct {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border: 1px solid #4caf50;
+        }
+        
+        .feedback.incorrect {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid #f44336;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4fc3f7, #2196f3);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 5px;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        
+        /* 胜利画面样式 */
+        .victory-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .victory-screen.show {
+            display: flex;
+        }
+        
+        .victory-title {
+            font-size: 4rem;
+            color: #ffeb3b;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 235, 59, 0.7);
+            animation: glow 2s infinite alternate;
+        }
+        
+        .winner-name {
+            font-size: 3.5rem;
+            color: #4caf50;
+            margin: 20px 0;
+            text-shadow: 0 0 15px rgba(76, 175, 80, 0.7);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .draw {
+            font-size: 3.5rem;
+            color: #ff9800;
+            margin: 20px 0;
+            text-shadow: 0 0 15px rgba(255, 152, 0, 0.7);
+        }
+        
+        .final-scores {
             display: flex;
             justify-content: center;
-            gap: 1rem;
+            gap: 50px;
+            margin: 30px 0;
         }
-
-        .submit-btn {
-            background: var(--primary);
-            color: white;
-        }
-
-        .answer {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            display: none;
-        }
-
-        .correct { color: #4CAF50; }
-        .wrong { color: #f44336; }
-
-        .complete-page {
+        
+        .player-final-score {
             text-align: center;
-            font-size: 2em;
-            color: var(--primary);
-            padding: 2rem;
-            display: none;
         }
-
-        .fireworks {
-            font-size: 3em;
-            animation: bounce 1s infinite;
+        
+        .player-final-name {
+            font-size: 1.8rem;
+            color: #4fc3f7;
+            margin-bottom: 10px;
         }
-
-        /* 新增换行样式 */
-        .explanation {
-            white-space: pre-line;
+        
+        .player-final-points {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffeb3b;
+        }
+        
+        .victory-message {
+            font-size: 1.5rem;
+            color: #ff9800;
+            margin: 20px 0;
+            max-width: 600px;
+            text-align: center;
             line-height: 1.6;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-top: 10px;
         }
-
-        /* 优化表格样式 */
-
-        .question table {
-
-            width: 100%;
-
-            margin: 1rem 0;
-
-            border-collapse: collapse;
-
-            border: 2px solid #555; /* 外边框加粗 */
-
-        }
-
-               .question th, .question td {
-
-            padding: 12px;
-
-            text-align: center; /* 内容居中 */
-
-            border: 1px solid #888; /* 所有单元格边框 */
-
-        }
-
-        .question th {
-
-            background-color: #e9ecef;
-
+        
+        .restart-game-btn {
+            background: linear-gradient(45deg, #4fc3f7, #2196f3);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(33, 150, 243, 0.5);
             font-weight: bold;
-
+            margin-top: 30px;
         }
-
-        /* 单元格悬停效果 */
-
-        .question td:hover {
-
-            background-color: #f8f9fa;
-
+        
+        .restart-game-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.7);
         }
-
-        /* 表格标题样式 */
-
-        .question table caption {
-
-            font-weight: bold;
-
-            margin-bottom: 8px;
-
-            font-size: 1.1em;
-
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            border-radius: 50%;
+            animation: confetti-fall 5s linear forwards;
         }
-
-        /* 表格内容样式 */
-
-        .question table td {
-
-            font-family: 'Courier New', monospace;
-
-        }
-
-        /* 表格响应式设计 */
-
-        @media (max-width: 600px) {
-
-            .question table {
-
-                font-size: 0.9em;
-
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
             }
-
-            .question th, .question td {
-
-                padding: 8px;
-
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
             }
-
         }
-
-        /* 表格加载动画 */
-
-        @keyframes fadeIn {
-
-            from { opacity: 0; transform: translateY(10px); }
-
-            to { opacity: 1; transform: translateY(0); }
-
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
         }
-
-        .question table {
-
-            animation: fadeIn 0.5s ease forwards;
-
+        
+        .floating {
+            position: absolute;
+            animation: floating 3s ease-in-out infinite;
+            opacity: 0.7;
+            z-index: -1;
         }
-
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
+        
+        @keyframes floating {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(10deg);
+            }
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+        }
+        
+        .python-logo {
+            width: 80px;
+            height: 80px;
+            top: 20px;
+            left: 20px;
+            animation-delay: 0.2s;
+        }
+        
+        .recursion-icon {
+            width: 60px;
+            height: 60px;
+            bottom: 20px;
+            right: 20px;
+            animation-delay: 0.4s;
+        }
+        
+        .binary-code {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.05);
+            font-size: 1rem;
+            user-select: none;
+            z-index: -1;
+        }
+        
+        @media (max-width: 768px) {
+            .game-area {
+                flex-direction: column;
+            }
+            
+            .player {
+                width: 100%;
+                margin-bottom: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .victory-title {
+                font-size: 2.5rem;
+            }
+            
+            .winner-name, .draw {
+                font-size: 2rem;
+            }
+            
+            .player-final-name {
+                font-size: 1.5rem;
+            }
+            
+            .player-final-points {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container" id="questionContainer"></div>
-    <div class="complete-page" id="completePage">
-        <div class="fireworks">🎉</div>
-        <h2>恭喜完成所有题目！</h2>
+    <div class="container">
+        <h1>KNN算法学霸课堂PK</h1>
+        
+        <div class="game-area">
+            <div class="player" id="player1">
+                <div class="player-header">
+                    <div class="player-name">玩家1</div>
+                    <div class="player-score" id="score1">0</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress1"></div>
+                </div>
+                <div class="progress-text" id="progress-text1">第1题/共10题</div>
+                <div class="question-container">
+                    <div class="question" id="question1"></div>
+                    <div class="options" id="options1"></div>
+                    <div class="waiting-message" id="waiting1" style="display: none;">等待玩家2作答...</div>
+                </div>
+                <div class="feedback" id="feedback1"></div>
+            </div>
+            
+            <div class="player" id="player2">
+                <div class="player-header">
+                    <div class="player-name">玩家2</div>
+                    <div class="player-score" id="score2">0</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress2"></div>
+                </div>
+                <div class="progress-text" id="progress-text2">第1题/共10题</div>
+                <div class="question-container">
+                    <div class="question" id="question2"></div>
+                    <div class="options" id="options2"></div>
+                    <div class="waiting-message" id="waiting2" style="display: none;">等待玩家1作答...</div>
+                </div>
+                <div class="feedback" id="feedback2"></div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn">开始PK</button>
+            <button id="next-btn" class="next-btn" disabled>下一题</button>
+        </div>
     </div>
-
+    
+    <!-- 胜利画面 -->
+    <div class="victory-screen" id="victory-screen">
+        <h2 class="victory-title">比赛结果</h2>
+        <div id="winner-display"></div>
+        <div class="final-scores">
+            <div class="player-final-score">
+                <div class="player-final-name">玩家1</div>
+                <div class="player-final-points" id="final-score1">0</div>
+            </div>
+            <div class="player-final-score">
+                <div class="player-final-name">玩家2</div>
+                <div class="player-final-points" id="final-score2">0</div>
+            </div>
+        </div>
+        <div class="victory-message" id="victory-message"></div>
+        <button class="restart-game-btn" id="restart-game-btn">再来一局</button>
+    </div>
+    
+    
+    <!-- 二进制背景代码 -->
+    <div class="binary-code" style="top: 10%; left: 5%;">101010</div>
+    <div class="binary-code" style="top: 30%; right: 10%;">110011</div>
+    <div class="binary-code" style="bottom: 20%; left: 15%;">100110</div>
+    <div class="binary-code" style="bottom: 40%; right: 20%;">111000</div>
+    
     <script>
-        // 完整的27道题目数据
-        const questions = [
+        // 题目数据 - 合并两套题目并随机分配
+        const allQuestions = [
+            // 第一套题目
             {
-                type: 'choice',
-                content: "1．短跑比赛中，运动员听到发令枪响后迅速起跑。这一过程中，神经细胞膜内外的电位变化主要依赖哪种离子的流动？",
-                options: ["A. Na⁺内流", "B. K⁺外流", "C. Cl⁻内流", "D. Ca²⁺外流"],
-                answer: 0,
-                explanation: "正确解析：运动员听到枪声后，神经细胞产生动作电位，主要由电压门控Na⁺通道开放导致Na⁺快速内流，引发膜内外电位反转（内正外负）。<br><br>错误选项分析：<br><br>B. K⁺外流是静息电位形成的主要机制，而非动作电位。<br><br>C. Cl⁻内流通常与抑制性突触后电位相关，与动作电位无关。<br><br>D. Ca²⁺外流主要参与突触小泡释放神经递质的过程，不直接引发动作电位。"
+                question: "张阿姨想用机器分拣成熟和未成熟的番茄，以下哪个特征是机器最容易识别的？",
+                options: ["番茄的气味", "番茄的颜色（RGB值）", "番茄的重量", "番茄的形状"],
+                answer: 1,
+                explanation: "机器通过RGB值量化颜色，而气味、形状等难以直接测量。"
             },
             {
-                type: 'choice',
-                content: "2．小明被针刺后迅速缩手，此时他的神经纤维兴奋部位膜内外电位表现为（　）。",
-                options: ["A. 内正外正", "B. 内负外正", "C. 内正外负", "D. 内负外负"],
+                question: "KNN算法的第一步是什么？",
+                options: ["训练模型", "预测结果", "采集数据", "计算距离"],
                 answer: 2,
-                explanation: "正确解析：神经纤维兴奋时，Na⁺内流导致膜内电位由负变正，形成动作电位（内正外负）。<br><br>错误选项分析：<br><br>A. 内正外正不符合任何电位状态。<br><br>B. 内负外正是静息电位的表现。<br><br>D. 内负外负不存在于正常生理状态中。"
+                explanation: "机器学习需先采集数据，才能训练和预测。"
             },
             {
-                type: 'choice',
-                content: "3.医生为患者注射普鲁卡因（钠通道阻断剂）进行局部麻醉。该药物主要影响神经细胞的哪个阶段？ ",
-                options: ["A. 静息电位维持", "B. 动作电位产生", "C. 复极化过程", "D. 超极化恢复"],
+                question: "以下哪项是KNN算法中“距离计算”的常用方法？",
+                options: ["计算颜色差异","欧氏距离","数数量","随机猜测"],
                 answer: 1,
-                explanation: '正确解析：普鲁卡因通过阻断电压门控Na⁺通道，抑制Na⁺内流，从而阻止动作电位的产生，达到麻醉效果。<br><br>错误选项分析：<br><br>A. 静息电位由K⁺外流维持，与Na⁺通道无关。<br><br>C. 复极化依赖K⁺外流，钠通道阻断剂不影响此过程。<br><br>D. 超极化是复极化后的短暂状态，与药物作用无关。'
+                explanation: "欧氏距离是KNN中计算多维空间距离的标准方法。"
             },
             {
-                type: 'essay',
-                content: "4.某同学在生物实验课上使用PHET软件模拟神经纤维的膜电位变化，观察到以下现象：<br><br>① 静息时：膜外电位显著高于膜内（外正内负）；<br><br>② 施加刺激后：膜内电位迅速上升，短暂超过膜外电位（内正外负）；<br><br>③ 刺激结束后：膜内电位逐渐下降，最终恢复至静息水平。<br><br>请结合离子流动机制回答：<br><br>上述三个阶段分别对应神经冲动的哪些电位变化？<br><br>解释每个阶段膜电位变化的离子基础。",
-                explanation: "答案：①静息电位 → ②动作电位（去极化和反极化） → ③复极化<br><br>静息电位：K⁺外流（协助扩散），膜内负外正；<br><br>动作电位：Na⁺内流（电压门控通道开放），膜内正外负；<br><br>复极化：K⁺外流（通道延迟开放），恢复静息电位。<br><br>解析：<br><br>阶段对应关系：<br><br>①静息电位是未受刺激时的稳定状态，由K⁺外流维持；<br><br>②动作电位包括去极化（Na⁺内流）和反极化（Na⁺内流达峰值）；<br><br>③复极化依赖K⁺外流，使膜电位恢复至静息水平。<br><br>离子流动机制：<br><br>静息电位：膜对K⁺通透性高，K⁺顺浓度梯度外流，形成内负外正电位差（-70mV）。<br><br>动作电位：<br><br>刺激打开电压门控Na⁺通道 → Na⁺快速内流 → 膜内电位上升（去极化）；<br><br>当膜内电位超过阈值（约-55mV），大量Na⁺内流 → 反极化（+30mV）。<br><br>复极化：<br><br>Na⁺通道关闭，K⁺通道开放 → K⁺外流 → 膜内电位下降；<br><br>钠钾泵主动运输（3Na⁺出、2K⁺入），恢复离子浓度差。"
-            },
-            {
-                type: 'essay',
-                content: "5.长期缺钾的患者可能出现肌肉无力。结合静息电位形成机制，解释可能原因。 ",
-                explanation: "答案：静息电位依赖K⁺外流，缺钾导致膜内外浓度差减小，静息电位稳定性下降，神经兴奋传导受阻。  <br><br>解析：<br><br>正确解析：<br><br>静息电位由K⁺外流形成，K⁺浓度差减小会导致静息电位绝对值降低。<br><br>膜电位不稳定时，神经元难以正常产生和传导动作电位，导致肌肉收缩无力。<br><br>错误分析：可能误认为Na⁺或Cl⁻参与静息电位形成（实际由K⁺主导）。"
-            },
-            {
-                type: 'choice',
-                content: "6.某实验中，刺激枪乌贼巨大轴突后，膜电位峰值低于正常值。推测可能的原因。",
-                options: ["A. 细胞外Na⁺浓度过低", "B. 细胞内K⁺浓度过高", "C. 钠钾泵活性增强", "D. 温度过低影响通道开放"],
-                answer: 0,
-                explanation: "正确解析：动作电位幅度与细胞外Na⁺浓度正相关。若细胞外Na⁺浓度过低，Na⁺内流减少，导致峰值降低。<br><br>错误选项分析：<br><br>B. 细胞内K⁺浓度过高主要影响静息电位，而非动作电位幅度。<br><br>C. 钠钾泵活性增强会加速复极化，但不影响动作电位峰值。<br><br>D. 温度过低可能延缓通道开放速度，但不会显著降低峰值。"
-            },
-            {
-                type: 'essay',
-                content: "7.马拉松运动员在比赛中会因大量出汗导致电解质流失。分析其神经冲动的传导可能受到哪些影响？  ",
-                explanation: "答案：1. 细胞外Na⁺减少 → 动作电位幅度降低 → 信号传递减弱；  <br><br>2. 细胞内K⁺流失 → 静息电位难以维持 → 神经元易疲劳。  <br><br>解析：<br><br>正确解析：Na⁺流失：动作电位依赖Na⁺内流，Na⁺浓度降低导致去极化幅度不足，信号传递效率下降。<br><br>K⁺流失：静息电位依赖K⁺外流形成的浓度差，K⁺减少使静息电位绝对值降低，神经元更易去极化，引发异常兴奋或疲劳。"
-            },
-            {
-                type: 'choice',
-                content: "8.某患者因严重腹泻导致体内钠离子（Na⁺）大量流失，医生诊断为“低钠血症”。结合神经冲动的产生机制，分析该患者的神经细胞可能出现以下哪种现象？",
-                options: ["A. 静息电位绝对值增大", "B. 动作电位峰值显著降低", "C. 复极化速度加快", "D. 超极化现象消失"],
+                question: "KNN算法中，待测番茄的分类结果取决于什么？",
+                options: ["所有番茄的平均颜色","距离最近的K个邻居的类别","番茄的大小","番茄的硬度"],
                 answer: 1,
-                explanation: "解析：<br><br>正确选项：B. 动作电位峰值显著降低<br><br>机制：动作电位的峰值由Na⁺内流量决定。患者因腹泻导致细胞外液Na⁺浓度降低，Na⁺内流减少，去极化幅度不足，动作电位峰值下降。<br><br>错误选项分析：<br><br>A. 静息电位由K⁺外流维持，与Na⁺浓度无关。<br><br>C. 复极化依赖K⁺外流，Na⁺浓度降低不影响此过程。<br><br>D. 超极化是复极化后的短暂状态，与Na⁺浓度无直接关系。"
+                explanation: "KNN根据K个最近邻的多数类别决定分类结果。"
             },
             {
-                type: 'essay',
-                content: "9.可卡因通过阻断多巴胺转运体引发成瘾。结合突触传递过程，解释吸毒者停药后出现抑郁的原因。  ",
-                explanation: "答案：多巴胺在突触间隙持续积累 → 突触后膜受体减少 → 正常多巴胺释放时无法有效传递愉悦信号 → 情绪低落。 <br><br>解析：<br><br>正确解析：<br><br>积累阶段：可卡因阻断多巴胺回收，突触间隙多巴胺浓度持续升高，过度刺激突触后膜受体。<br><br>受体下调：长期高浓度多巴胺导致受体数量减少（负反馈调节）。<br><br>停药后：多巴胺释放量恢复正常，但受体不足，无法传递足够愉悦信号，引发抑郁。<br><br>关联生活：类似机制也见于抗抑郁药物（如SSRIs）的作用，但方向相反。"
-            },
-            {
-                type: 'choice',
-                content: "10．在离体神经纤维上，兴奋传导的方向与膜内局部电流方向（　）。",
-                options: ["A. 相同", "B. 相反", "C. 无规律", "D. 取决于刺激强度"],
-                answer: 0,
-                explanation: "正确解析：膜内局部电流由兴奋部位（正电位）流向未兴奋部位（负电位），与兴奋传导方向一致。<br><br>错误选项分析：<br><br>B. 膜外局部电流方向与兴奋传导方向相反，但题目问的是膜内。<br><br>D. 传导方向由离子流动决定，与刺激强度无关。"
-            },
-            {
-                type: 'choice',
-                content: "11.某同学设计实验验证兴奋在神经纤维上的双向传导，应选择哪种材料？",
-                options: ["A. 完整反射弧", "B. 离体神经纤维", "C. 突触结构", "D. 肌肉组织"],
-                answer: 1,
-                explanation: "正确解析：离体神经纤维无突触限制，刺激中间点可向两端传导；完整反射弧中突触会限制传导方向。<br><br>错误选项分析：<br><br>C. 突触结构只能单向传递信号，无法验证双向传导。"
-            },
-            {
-                type: 'choice',
-                content: "12.在神经纤维产生动作电位的过程中，复极化阶段的主要离子流动机制是（　）。",
-                options: ["A. Na⁺内流", "B. K⁺外流", "C. Cl⁻内流", "D. Ca²⁺外流"],
-                answer: 1,
-                explanation: "正确解析：复极化阶段，Na⁺通道关闭，K⁺通道延迟开放，K⁺顺浓度梯度外流，使膜电位恢复至静息水平（内负外正）。<br><br>错误选项分析：<br><br>A. Na⁺内流发生在去极化和反极化阶段，是动作电位上升支的形成原因。<br><br>C. Cl⁻内流通常与抑制性突触后电位相关，与复极化无关。<br><br>D. Ca²⁺外流主要参与神经递质释放，而非膜电位恢复。"
-            },
-            {
-                type: 'essay',
-                content: "13.某实验中将电流计连接于神经纤维a、b两点（ab=bc），刺激b点，电流计指针如何偏转？ ",
-                explanation: "答案：先向左偏转，再向右偏转（共两次方向相反的偏转）。 <br><br>解析：<br><br>正确解析：<br><br>兴奋首先到达a点，电流计左侧电极先变为负电位，电流方向为a→b→c，指针向左偏转。<br><br>兴奋随后到达c点，右侧电极变为负电位，电流方向为c→b→a，指针向右偏转。<br><br>错误分析：若误认为兴奋仅单向传导，则可能得出“单次偏转”的错误结论。"
-            },
-            {
-                type: 'choice',
-                content: "14.设计实验验证“局部电流是兴奋传导的动力”，需排除哪种干扰因素？  ",
-                options: ["A. 神经纤维完整性", "离子通道活性", "C. 突触传递", "D. 能量供应"],
-                answer: 2,
-                explanation: "正确解析：突触传递依赖化学信号（神经递质），与局部电流的物理传导机制无关。实验中需排除突触干扰，仅观察电流作用。<br><br>错误选项分析：<br><br>D. 能量供应（如ATP）影响钠钾泵活动，但局部电流传导本身不依赖能量。"
-            },
-            {
-                type: 'essay',
-                content: "15.电击治疗抑郁症时，电流方向与疗效相关。结合局部电流理论解释原因。 ",
-                explanation: "答案：电流方向影响神经纤维兴奋的传导方向，不同方向可能刺激不同脑区。<br><br>解析：<br><br>正确解析：<br><br>正向电流可能激活特定神经通路（如前额叶皮层），改善情绪；<br><br>反向电流可能抑制异常兴奋区域（如杏仁核）。<br><br>关联生活：类似原理应用于经颅磁刺激（TMS）治疗精神疾病。"
-            },
-            {
-                type: 'essay',
-                content: "16.某患者因外伤导致坐骨神经损伤，表现为右腿无法运动但仍有痛觉。结合传导方向分析可能损伤部位。 ",
-                explanation: "答案：运动神经纤维（传出神经）受损，但传入神经（痛觉）完好。<br><br>解析：<br><br>正确解析：<br><br>运动信号：由传出神经（运动神经元）传导至肌肉，损伤后导致瘫痪。<br><br>痛觉信号：由传入神经（感觉神经元）传导至脊髓，未受损故仍有痛觉。<br><br>错误分析：可能误认为传入神经受损（但痛觉存在说明其功能正常）。"
-            },
-            {
-                type: 'essay',
-                content: "17.某药物可增强K⁺通道通透性，推测其对动作电位的影响，并说明理由。",
-                explanation: "答案：动作电位幅度降低，复极化加速。K⁺外流增加会抑制去极化。<br><br>解析：<br><br>正确解析：<br><br>去极化抑制：K⁺外流增加会抵消Na⁺内流，降低动作电位峰值。<br><br>复极化加速：K⁺外流增多使膜电位更快恢复至静息状态。<br><br>关联应用：类似药物可用于治疗癫痫（减少异常放电）。"
-            },
-            {
-                type: 'essay',
-                content: "18.运动员训练时常通过“冷敷”缓解肌肉酸痛。结合局部电流理论解释其原理。  ",
-                explanation: "答案：低温降低离子通道活性 → 局部电流减弱 → 神经冲动传导减慢 → 减少疼痛信号传递。cc解析：<br><br>正确解析：<br><br>通道活性下降：低温使Na⁺、K⁺通道开放速率减慢，动作电位传导速度降低。<br><br>疼痛信号减弱：减缓痛觉神经的冲动传递，减轻酸痛感。<br><br>错误分析：可能误认为冷敷直接阻断突触递质释放（实际作用于膜电位变化）。"
-            },
-            {
-                type: 'choice',
-                content: "19.有机磷农药中毒时，患者会出现肌肉持续收缩，原因是（　）。",
-                options: ["A. 乙酰胆碱酯酶活性增强", "B. 乙酰胆碱受体被阻断", "C. 乙酰胆碱无法被分解", "D. 钠通道持续开放"],
-                answer: 2,
-                explanation: "正确解析：有机磷农药抑制乙酰胆碱酯酶活性，导致乙酰胆碱在突触间隙堆积，持续刺激突触后膜，引发肌肉痉挛。<br><br>错误选项分析：<br><br>D. 钠通道持续开放是乌头碱的作用机制，与有机磷无关。"
-            },
-            {
-                type: 'choice',
-                content: "20.可卡因成瘾的生理学机制是（　）。 ",
-                options: ["A. 促进多巴胺释放", "B. 阻断多巴胺回收", "C. 增加多巴胺受体", "D. 抑制多巴胺合成"],
-                answer: 1,
-                explanation: "正确解析：可卡因与多巴胺转运体结合，阻止多巴胺被回收至突触前膜，导致突触间隙多巴胺浓度升高。<br><br>错误选项分析：<br><br>A. 可卡因不直接促进释放，而是阻止回收。"
-            },
-            {
-                type: 'choice',
-                content: "21.临床使用“封闭针”镇痛时，药物主要作用于（　）。",
-                options: ["A. 突触前膜", "B. 突触间隙", "C. 突触后膜受体", "D. 钠通道"],
+                question: "小明的KNN模型用颜色（R值）和大小（直径）分类番茄，以下哪种情况可能导致分类错误？",
+                options: ["成熟和未成熟番茄的R值差异明显","成熟和未成熟番茄的直径几乎相同","数据标注错误","以上都可能"],
                 answer: 3,
-                explanation: "正确解析：封闭针中的普鲁卡因是钠通道阻断剂，抑制动作电位产生，阻断痛觉信号传导。<br><br>错误选项分析：<br><br>C. 若药物作用于受体（如吗啡），则属于另一种镇痛机制。"
+                explanation: "直径无区分度（B）、标注错误（C）均会影响分类准确性。"
             },
             {
-                type: 'essay',
-                content: "22.长期吸食冰毒（甲基苯丙胺）会导致多巴胺受体减少。解释停药后为何出现抑郁症状。 ",
-                explanation: "答案：受体减少 → 正常多巴胺释放无法有效传递信号 → 愉悦感降低 → 情绪低落。  <br><br>解析：<br><br>正确解析：<br><br>受体下调：长期高浓度多巴胺刺激引发负反馈，突触后膜受体数量减少。<br><br>信号减弱：停药后多巴胺释放量正常，但受体不足，无法激活奖赏通路，导致抑郁。<br><br>关联生活：类似机制见于抗抑郁药物需长期服用以调整受体敏感性。"
+                question: "以下哪组K值设置是合理的？",
+                options: ["K=1（样本总数100）","K=50（样本总数100）","K=10（样本总数100）","K=4（样本总数100）"],
+                answer: 2,
+                explanation: "K=10避免过拟合（K太小）或忽略局部特征（K太大）。"
             },
             {
-                type: 'choice',
-                content: "23.某患者误服“箭毒”（乙酰胆碱受体阻断剂），可能出现哪些症状？",
-                options: ["A. 肌肉松弛", "B. 肌肉痉挛", "C. 呼吸加快", "D. 心跳加速"],
+                question: "若KNN分类结果不稳定（同一番茄有时判红有时判绿），如何改进？",
+                options: ["增加样本数量","调整K值为奇数","检查特征是否合理","以上全部"],
+                answer: 3,
+                explanation: "不稳定性可能由样本、K值、特征共同导致，需综合改进。"
+            },
+            {
+                question: "若KNN模型在番茄分拣中误将黄色番茄分类为成熟，可能的原因是？① 训练数据中黄色番茄样本过少② K值过小导致过拟合③ 未将颜色和形状特征结合使用",
+                options: ["仅①","①和②","②和③","①、②和③"],
+                answer: 3,
+                explanation: "数据不足（①）、K值问题（②）、特征选择不当（③）均可能导致误分类，需综合关联分析。"
+            },
+            {
+                question: "KNN算法还可用于以下哪种场景？",
+                options: ["根据天气数据预测明天是否下雨","根据身高体重判断性别","根据电影评分推荐相似影片","以上全部"],
+                answer: 3,
+                explanation: "KNN适用于分类（B）、回归（A）、推荐（C）等多种任务。"
+            },
+            {
+                question: "KNN算法在医疗诊断中可能存在什么风险？",
+                options: ["样本偏差导致误诊","计算速度慢","需要大量数据","以上全部"],
+                answer: 3,
+                explanation: "医疗数据偏差（A）、实时性（B）、数据量（C）均为潜在问题。"
+            },
+            // 第二套题目
+            {
+                question: "以下哪句话可以概括KNN算法的思想？",
+                options: ["“一分耕耘，一分收获”"," “近朱者赤，近墨者黑”","“条条大路通罗马”","“熟能生巧”"],
+                answer: 1,
+                explanation: "KNN通过“邻居”的类别判断样本类别，与B含义一致。"
+            },
+            {
+                question: "以下哪项是机器学习中“特征”的含义？",
+                options: ["数据样本的标签","数据的可视化图表","描述数据的属性或变量（如颜色、大小）","算法的计算速度"],
+                answer: 2,
+                explanation: "特征是描述数据的属性（如RGB值、重量），而非标签或算法性能。"
+            },
+            {
+                question: "如果计算机用RGB值判断番茄是否成熟，以下哪个番茄的R值可能最高？",
+                options: ["绿色未成熟番茄","红色成熟番茄","黄色番茄","紫色番茄"],
+                answer: 1,
+                explanation: "R值代表红色分量，红色番茄的R值最高。"
+            },
+            {
+                question: "在KNN算法中，若两个番茄的RGB值分别为(255,0,0)和(0,255,0)，它们的颜色差异主要由哪种距离度量？",
+                options: ["曼哈顿距离","欧氏距离","余弦相似度","汉明距离"],
+                answer: 1,
+                explanation: "欧氏距离是KNN中衡量多维空间两点距离的标准方法。"
+            },
+            {
+                question: "在散点图中，横轴为R值，纵轴为G值，以下哪种分布最适合用KNN分类？",
+                options: ["红点和绿点完全混合","红点集中在左上，绿点在右下","所有点颜色相同","点随机分布"],
+                answer: 1,
+                explanation: "红点和绿点分簇明显时，KNN分类效果最好。"
+            },
+            {
+                question: "小华的KNN模型用颜色（R值）和重量分类番茄，以下哪种情况会提高分类准确率？",
+                options: ["成熟番茄的R值显著高于未成熟番茄，且重量差异明显","成熟和未成熟番茄的R值相同","仅重量有差异，但数据标注错误","R值和重量均无区分度"],
                 answer: 0,
-                explanation: "正确解析：箭毒阻断神经-肌肉接头的乙酰胆碱受体，导致骨骼肌无法收缩，表现为松弛性瘫痪。<br><br>错误选项分析：<br><br>B. 肌肉痉挛由乙酰胆碱过度作用（如有机磷中毒）引起。"
+                explanation: "需同时满足颜色和重量两个特征具有区分度（A），单一特征无效（B、D）或数据噪声（C）会降低准确率。"
             },
             {
-                type: 'essay',
- content: "24.对比以下两种实验处理对动作电位的影响：<br><br>" +
-                        '<table>' +
-                        '  <tr>' +
-                        '    <th>实验处理</th>' +
-                        '    <th>细胞外液Na⁺浓度降低50%</th>' +
-                        '    <th>细胞外液K⁺浓度升高50%</th>' +
-                        '  </tr>' +
-                        '  <tr>' +
-                        '    <td>动作电位峰值变化</td>' +
-                        '    <td>①</td>' +
-                        '    <td>②</td>' +
-                        '  </tr>' +
-                        '  <tr>' +
-                        '    <td>静息电位绝对值变化</td>' +
-                        '    <td>③</td>' +
-                        '    <td>④</td>' +
-                        '  </tr>' +
-                        '</table>' +
-                        '<br>请结合离子流动机制回答：<br><br>上述①-④处分别会发生怎样的变化？解释其生理学原理。',
-
-                explanation: "答案：<br><br>①显著降低　②基本不变　③无影响　④减小<br><br>解析：<br><br>动作电位峰值：由Na⁺内流量决定，Na⁺浓度降低导致峰值下降（①），K⁺浓度变化不影响动作电位（②）。<br><br>静息电位：由K⁺外流形成的浓度差维持，K⁺浓度升高使膜内外K⁺梯度减小，静息电位绝对值降低（④），Na⁺浓度变化不影响静息电位（③）。<br><br>易错点：<br><br>误认为K⁺浓度变化影响动作电位（实际由Na⁺主导）；<br><br>混淆静息电位与动作电位的离子依赖关系。"
+                question: "张阿姨的番茄分拣系统误将红色番茄分类为未成熟，可能的原因是？",
+                options: ["样本中红色番茄数据过少","K值设置过大","反光导致R值提取错误","以上全部"],
+                answer: 3,
+                explanation: "数据不足（A）、K值不合理（B）、数据噪声（C）均可能导致误分类。"
             },
             {
-                type: 'essay',
-                content: "25.某戒毒所采用“替代疗法”帮助患者缓解毒瘾，如使用美沙酮（阿片受体激动剂）。评价该方法的利弊。",
-                explanation: "答案：<br><br>利：缓解戒断症状，减少吸毒危害；  <br><br>弊：可能导致美沙酮成瘾，需严格剂量控制。  <br><br>解析：<br><br>正确解析：<br><br>优势：美沙酮与阿片受体结合，模拟毒品效果，减轻戒断反应（如焦虑、疼痛）。<br><br>风险：长期使用美沙酮同样会引发依赖，需在医生监督下逐步减量。<br><br>关联伦理：替代疗法需权衡短期救治与长期依赖性风险。"
+                question: "设计KNN分类系统时，以下哪一步骤必须在“距离计算”之前完成？",
+                options: ["设置K值","数据标注","模型训练","结果预测"],
+                answer: 1,
+                explanation: "需先标注数据，才能计算待测样本与已标注数据的距离。"
             },
             {
-                type: 'essay',
-                content: "26.设计实验验证“咖啡因通过增强突触前膜递质释放提神”。  ",
-                explanation: "实验思路：  <br><br>1. 取两组突触标本，一组加入咖啡因，另一组不加；  <br><br>2. 刺激突触前神经元，检测突触后膜电位变化。  <br><br>**预期结果**：咖啡因组突触后膜电位变化更显著。  <br><br>**易错点解析**：可能未设置对照或忽略递质释放量的直接测量。<br><br>解析：<br><br>正确解析：<br><br>对照组：正常递质释放 → 后膜电位正常变化。<br><br>实验组：咖啡因促进突触小泡释放递质 → 后膜电位变化增强。<br><br>错误分析：若未设置对照，则无法排除其他因素（如直接作用于受体）。"
+                question: "在番茄分拣系统中，以下哪种情况最适合使用KNN算法？",
+                options: ["需要快速处理数百万张番茄图片","番茄的特征维度超过100个","番茄的成熟度分类边界清晰，且样本量适中","需要实时每秒处理1000个番茄"],
+                answer: 2,
+                explanation: "KNN适合小规模、低维度、分类边界清晰的数据（C正确）。处理大规模数据（A）或高维度数据（B）时效率低，实时性要求高（D）时计算延迟明显。"
             },
             {
-                type: 'essay',
-                content: "27．某新型毒品'丧尸药'会破坏多巴胺神经元。推测吸食者可能出现的行为异常及生理原因。",
-                explanation: "答案：<br><br>行为异常：情绪失控、幻觉、暴力倾向；<br><br>生理原因：多巴胺神经元死亡 → 愉悦信号传递中断 → 大脑奖赏系统紊乱。<br><br>易错点解析：可能误认为多巴胺过多导致亢奋（实际神经元死亡导致信号缺失）。<br><br>解析：<br><br>正确解析：<br><br>多巴胺功能：调节情绪、动机和愉悦感，其神经元损伤导致奖赏通路异常。<br><br>行为表现：无法感知正常愉悦，转而寻求极端刺激（如攻击行为）。<br><br>关联社会：此类毒品危害远超传统毒品，需加强科普宣传。"
+                question: "某公司想用KNN算法实时监测生产线上的水果缺陷，但发现效果不佳。以下改进措施中，最不合理的是？",
+                options: ["改用卷积神经网络（CNN）处理图像特征","增加K值以提高稳定性","引入红外传感器补充表面缺陷检测","减少样本数量以降低计算量"],
+                answer: 3,
+                explanation: "KNN的局限性在于实时性和大数据量（D会加剧问题），应选择更高效算法（A）或补充特征（C），而单纯增加K值（B）可能无法解决根本问题。"
             }
         ];
-
-        let currentQuestion = 0;
-        let selectedOption = -1;
-
-        function renderQuestion() {
-            const container = document.getElementById('questionContainer');
-            const completePage = document.getElementById('completePage');
+        
+// 游戏状态
+        let gameState = {
+            currentPlayer: 1, // 当前答题玩家
+            player1: {
+                score: 0,
+                currentQuestion: 0,
+                questions: [],
+                answered: false
+            },
+            player2: {
+                score: 0,
+                currentQuestion: 0,
+                questions: [],
+                answered: false
+            },
+            gameStarted: false,
+            currentRound: 1 // 当前轮次（从1开始）
+        };
+        
+        // DOM元素
+        const player1Element = document.getElementById('player1');
+        const player2Element = document.getElementById('player2');
+        const question1Element = document.getElementById('question1');
+        const question2Element = document.getElementById('question2');
+        const options1Element = document.getElementById('options1');
+        const options2Element = document.getElementById('options2');
+        const waiting1Element = document.getElementById('waiting1');
+        const waiting2Element = document.getElementById('waiting2');
+        const score1Element = document.getElementById('score1');
+        const score2Element = document.getElementById('score2');
+        const progress1Element = document.getElementById('progress1');
+        const progress2Element = document.getElementById('progress2');
+        const progressText1Element = document.getElementById('progress-text1');
+        const progressText2Element = document.getElementById('progress-text2');
+        const feedback1Element = document.getElementById('feedback1');
+        const feedback2Element = document.getElementById('feedback2');
+        const startBtn = document.getElementById('start-btn');
+        const nextBtn = document.getElementById('next-btn');
+        
+        // 胜利画面元素
+        const victoryScreen = document.getElementById('victory-screen');
+        const winnerDisplay = document.getElementById('winner-display');
+        const finalScore1Element = document.getElementById('final-score1');
+        const finalScore2Element = document.getElementById('final-score2');
+        const victoryMessageElement = document.getElementById('victory-message');
+        const restartGameBtn = document.getElementById('restart-game-btn');
+        
+        // 初始化游戏
+        function initGame() {
+            // 重置游戏状态
+            gameState = {
+                currentPlayer: 1,
+                player1: {
+                    score: 0,
+                    currentQuestion: 0,
+                    questions: [],
+                    answered: false
+                },
+                player2: {
+                    score: 0,
+                    currentQuestion: 0,
+                    questions: [],
+                    answered: false
+                },
+                gameStarted: false,
+                currentRound: 0
+            };
             
-            if(currentQuestion >= questions.length) {
-                container.style.display = 'none';
-                completePage.style.display = 'block';
+            // 随机分配题目给两位玩家
+            const shuffledQuestions = [...allQuestions].sort(() => Math.random() - 0.5);
+            gameState.player1.questions = shuffledQuestions.slice(0, 10);
+            gameState.player2.questions = shuffledQuestions.slice(10, 20);
+            
+            // 更新UI
+            score1Element.textContent = '0';
+            score2Element.textContent = '0';
+            progress1Element.style.width = '0%';
+            progress2Element.style.width = '0%';
+            progressText1Element.textContent = '第1题/共10题';
+            progressText2Element.textContent = '第1题/共10题';
+            question1Element.textContent = '准备开始...';
+            question2Element.textContent = '准备开始...';
+            options1Element.innerHTML = '';
+            options2Element.innerHTML = '';
+            waiting1Element.style.display = 'none';
+            waiting2Element.style.display = 'none';
+            feedback1Element.textContent = '';
+            feedback2Element.textContent = '';
+            feedback1Element.className = 'feedback';
+            feedback2Element.className = 'feedback';
+            
+            // 设置玩家高亮
+            player1Element.classList.add('active');
+            player1Element.classList.remove('waiting');
+            player2Element.classList.remove('active');
+            player2Element.classList.add('waiting');
+            
+            // 按钮状态
+            startBtn.textContent = '开始PK';
+            startBtn.disabled = false;
+            nextBtn.disabled = true;
+            
+            // 隐藏胜利画面
+            victoryScreen.classList.remove('show');
+            
+            // 显示游戏区域
+            document.querySelector('.container').style.display = 'block';
+        }
+        
+        // 开始游戏
+        function startGame() {
+            gameState.gameStarted = true;
+            gameState.currentRound = 1; // 第一轮
+            startBtn.disabled = true;
+            nextBtn.disabled = true;
+            
+            // 显示第一个问题（玩家1先答题）
+            showQuestion(1, 0); // 玩家1答第1题
+            showWaitingMessage(2);
+        }
+        
+        // 显示问题
+        function showQuestion(player, questionIndex) {
+            const playerData = player === 1 ? gameState.player1 : gameState.player2;
+            const questionElement = player === 1 ? question1Element : question2Element;
+            const optionsElement = player === 1 ? options1Element : options2Element;
+            const waitingElement = player === 1 ? waiting1Element : waiting2Element;
+            const progressElement = player === 1 ? progress1Element : progress2Element;
+            const progressTextElement = player === 1 ? progressText1Element : progressText2Element;
+            
+            const question = playerData.questions[questionIndex];
+            questionElement.textContent = question.question;
+            
+            // 更新进度条
+            progressElement.style.width = `${((questionIndex + 1) / playerData.questions.length) * 100}%`;
+            progressTextElement.textContent = `第${questionIndex + 1}题/共${playerData.questions.length}题`;
+            
+            // 生成选项
+            optionsElement.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option';
+                optionElement.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
+                optionElement.dataset.index = index;
+                optionElement.addEventListener('click', () => selectAnswer(player, index));
+                optionsElement.appendChild(optionElement);
+            });
+            
+            // 显示选项，隐藏等待消息
+            optionsElement.style.display = 'grid';
+            waitingElement.style.display = 'none';
+            
+            // 重置回答状态
+            playerData.answered = false;
+            
+            // 设置当前玩家高亮
+            if (player === 1) {
+                player1Element.classList.add('active');
+                player1Element.classList.remove('waiting');
+                player2Element.classList.remove('active');
+                player2Element.classList.add('waiting');
+            } else {
+                player1Element.classList.remove('active');
+                player1Element.classList.add('waiting');
+                player2Element.classList.add('active');
+                player2Element.classList.remove('waiting');
+            }
+        }
+        
+        // 显示等待消息
+        function showWaitingMessage(player) {
+            const questionElement = player === 1 ? question1Element : question2Element;
+            const optionsElement = player === 1 ? options1Element : options2Element;
+            const waitingElement = player === 1 ? waiting1Element : waiting2Element;
+            
+            questionElement.textContent = '';
+            optionsElement.style.display = 'none';
+            waitingElement.style.display = 'block';
+        }
+        
+        // 选择答案
+        function selectAnswer(player, optionIndex) {
+            if (!gameState.gameStarted) return;
+            
+            const playerData = player === 1 ? gameState.player1 : gameState.player2;
+            if (playerData.answered) return;
+            
+            const currentQuestion = playerData.questions[playerData.currentQuestion];
+            const optionsElement = player === 1 ? options1Element : options2Element;
+            const feedbackElement = player === 1 ? feedback1Element : feedback2Element;
+            const scoreElement = player === 1 ? score1Element : score2Element;
+            
+            // 标记选中的选项
+            const optionElements = optionsElement.querySelectorAll('.option');
+            optionElements.forEach((el, idx) => {
+                el.classList.remove('selected', 'correct', 'incorrect');
+                if (idx === optionIndex) {
+                    el.classList.add('selected');
+                }
+            });
+            
+            // 检查答案
+            const isCorrect = optionIndex === currentQuestion.answer;
+            if (isCorrect) {
+                playerData.score++;
+                scoreElement.textContent = playerData.score;
+                
+                // 显示正确反馈
+                feedbackElement.textContent = '✓ 正确! ' + currentQuestion.explanation;
+                feedbackElement.className = 'feedback correct show';
+                
+                // 添加正确动画
+                optionElements[optionIndex].classList.add('correct');
+            } else {
+                // 显示错误反馈和正确答案
+                feedbackElement.textContent = '✗ 错误! 正确答案: ' + String.fromCharCode(65 + currentQuestion.answer) + '. ' + currentQuestion.options[currentQuestion.answer] + ' - ' + currentQuestion.explanation;
+                feedbackElement.className = 'feedback incorrect show';
+                
+                // 标记错误和正确答案
+                optionElements[optionIndex].classList.add('incorrect');
+                optionElements[currentQuestion.answer].classList.add('correct');
+            }
+            
+            // 标记为已回答
+            playerData.answered = true;
+            
+            // 启用下一题按钮
+            nextBtn.disabled = false;
+        }
+        
+        // 下一题
+        function nextQuestion() {
+            nextBtn.disabled = true;
+            
+            // 隐藏反馈
+            feedback1Element.classList.remove('show');
+            feedback2Element.classList.remove('show');
+            
+            // 更新当前轮次
+            gameState.currentRound++;
+            
+            // 切换当前玩家
+            gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+            
+            // 计算当前问题索引（每个玩家独立计算）
+            if (gameState.currentPlayer === 1) {
+                // 玩家1的当前题目索引 = (当前轮次-1)/2 取整
+                gameState.player1.currentQuestion = Math.floor((gameState.currentRound - 1) / 2);
+            } else {
+                // 玩家2的当前题目索引 = (当前轮次-1)/2 取整
+                gameState.player2.currentQuestion = Math.floor((gameState.currentRound - 1) / 2);
+            }
+            
+            // 检查游戏是否结束（双方都答完所有题目）
+            if (gameState.player1.currentQuestion >= gameState.player1.questions.length && 
+                gameState.player2.currentQuestion >= gameState.player2.questions.length) {
+                endGame();
                 return;
             }
-
-            const q = questions[currentQuestion];
-            let html = `<div class="question">
-                <h3>${q.content}</h3>`;
-
-            if(q.type === 'choice') {
-                html += `<div class="options">`;
-                q.options.forEach((opt, i) => {
-                    html += `<div class="option ${i === selectedOption ? 'selected' : ''}" 
-                             onclick="handleSelect(${i})">${opt}</div>`;
-                });
-                html += `</div>
-                <button class="submit-btn" onclick="checkAnswer()">提交答案</button>`;
-            } else {
-                html += `<p style="color:#666;">（解答题请在纸上作答）</p>
-                <button onclick="showExplanation()">查看答案详解</button>`;
-            }
-
-            html += `<div class="answer" id="answer"></div>
-                <div class="nav-buttons">
-                    ${currentQuestion > 0 ? `<button onclick="changeQuestion(-1)">← 上一题</button>` : ''}
-                    ${currentQuestion < questions.length-1 ? `<button onclick="changeQuestion(1)">下一题 →</button>` : ''}
-                </div>
-            </div>`;
-
-            container.innerHTML = html;
-        }
-
-        function handleSelect(index) {
-            selectedOption = index;
-            document.querySelectorAll('.option').forEach((opt, i) => {
-                opt.classList.toggle('selected', i === index);
-            });
-        }
-
-        function checkAnswer() {
-            const answerDiv = document.getElementById('answer');
-            answerDiv.style.display = 'block';
             
-            if(selectedOption === questions[currentQuestion].answer) {
-                answerDiv.innerHTML = `<p class="correct">回答正确！！</p>
-                    <button onclick="showExplanation()">查看详解</button>`;
+            // 检查当前玩家是否还有题目
+            const currentPlayerData = gameState.currentPlayer === 1 ? gameState.player1 : gameState.player2;
+            if (currentPlayerData.currentQuestion >= currentPlayerData.questions.length) {
+                // 当前玩家没有题目了，直接结束游戏
+                endGame();
+                return;
+            }
+            
+            // 显示下一题
+            if (gameState.currentPlayer === 1) {
+                showQuestion(1, gameState.player1.currentQuestion);
+                showWaitingMessage(2);
             } else {
-                answerDiv.innerHTML = `<p class="wrong">答错了哦，再想想~</p>
-                    <button onclick="showExplanation()">查看详解</button>`;
+                showQuestion(2, gameState.player2.currentQuestion);
+                showWaitingMessage(1);
             }
         }
-
-        function showExplanation() {
-            const answerDiv = document.getElementById('answer');
-            answerDiv.style.display = 'block';
-            answerDiv.innerHTML = `
-                <div class="explanation">
-                    ${questions[currentQuestion].explanation}
-                </div>
-            `;
+        
+        // 结束游戏
+        function endGame() {
+            // 隐藏游戏区域
+            document.querySelector('.container').style.display = 'none';
+            
+            // 显示最终得分
+            finalScore1Element.textContent = gameState.player1.score;
+            finalScore2Element.textContent = gameState.player2.score;
+            
+            // 判断获胜者
+            const scoreDiff = Math.abs(gameState.player1.score - gameState.player2.score);
+            let winner = null;
+            let victoryMsg = '';
+            
+            if (gameState.player1.score > gameState.player2.score) {
+                winner = '玩家1';
+                if (scoreDiff >= 5) {
+                    victoryMsg = `完胜！领先${scoreDiff}分`;
+                } else if (scoreDiff >= 3) {
+                    victoryMsg = `优势胜利！领先${scoreDiff}分`;
+                } else {
+                    victoryMsg = `险胜！领先${scoreDiff}分`;
+                }
+            } else if (gameState.player2.score > gameState.player1.score) {
+                winner = '玩家2';
+                if (scoreDiff >= 5) {
+                    victoryMsg = `完胜！领先${scoreDiff}分`;
+                } else if (scoreDiff >= 3) {
+                    victoryMsg = `优势胜利！领先${scoreDiff}分`;
+                } else {
+                    victoryMsg = `险胜！领先${scoreDiff}分`;
+                }
+            } else {
+                winner = '平局';
+                victoryMsg = '双方势均力敌！';
+            }
+            
+            // 更新胜利画面内容
+            winnerDisplay.innerHTML = '';
+            if (winner === '平局') {
+                const drawElement = document.createElement('div');
+                drawElement.className = 'draw';
+                drawElement.textContent = '平局！';
+                winnerDisplay.appendChild(drawElement);
+            } else {
+                const winnerElement = document.createElement('div');
+                winnerElement.className = 'winner-name';
+                winnerElement.textContent = `${winner} 获胜！`;
+                winnerDisplay.appendChild(winnerElement);
+            }
+            
+            victoryMessageElement.textContent = victoryMsg;
+            
+            // 显示胜利画面
+            victoryScreen.classList.add('show');
+            
+            // 创建庆祝彩花
+            if (winner !== '平局') {
+                createConfetti();
+            }
         }
-
-        function changeQuestion(delta) {
-            currentQuestion += delta;
-            selectedOption = -1;
-            renderQuestion();
+        
+        // 创建庆祝彩花
+        function createConfetti() {
+            const colors = ['#ff0000', '#ffcc00', '#00ff00', '#00ccff', '#cc00ff'];
+            
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.width = `${Math.random() * 10 + 5}px`;
+                confetti.style.height = `${Math.random() * 10 + 5}px`;
+                confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                confetti.style.animationDelay = `${Math.random() * 2}s`;
+                document.body.appendChild(confetti);
+                
+                // 移除彩花元素
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
         }
-
-        // 初始化渲染
-        renderQuestion();
-
-        // 全局暴露函数
-        window.handleSelect = handleSelect;
-        window.checkAnswer = checkAnswer;
-        window.showExplanation = showExplanation;
-        window.changeQuestion = changeQuestion;
+        
+        // 事件监听
+        startBtn.addEventListener('click', startGame);
+        nextBtn.addEventListener('click', nextQuestion);
+        restartGameBtn.addEventListener('click', initGame);
+        
+        // 初始化游戏
+        initGame();
     </script>
 </body>
 </html>
